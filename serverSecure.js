@@ -76,7 +76,6 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 grid-template-columns: 2fr 1fr;
                 gap: 24px;
             }
-            /* Responsive grid */
             @media (max-width: 768px) {
                 .grid-container {
                     grid-template-columns: 1fr;
@@ -144,7 +143,7 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 font-size: 1rem;
                 font-weight: 600;
                 color: #ffffff;
-                background-color: #1976d2; /* Main blue */
+                background-color: #1976d2; /* Main blue for secure actions */
                 border: none;
                 border-radius: 6px;
                 cursor: pointer;
@@ -183,23 +182,33 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 </div>
 
                 <div class="card">
-                    <h2>Update Profile</h2>
-                    <form action="/update-email" method="POST">
+                    <h2>Make a Transfer</h2>
+                    <form action="/transfer" method="POST">
                         <div class="form-group">
-                            <label for="email" class="form-label">New Email Address</label>
+                            <label for="toAccount" class="form-label">To Account Number</label>
                             <input 
-                                type="email" 
-                                name="email" 
-                                id="email" 
+                                type="text" 
+                                name="toAccount" 
+                                id="toAccount" 
                                 class="form-input"
-                                placeholder="new.email@example.com"
+                                placeholder="PKXX XXXX XXXX XXXX"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="amount" class="form-label">Amount (PKR)</label>
+                            <input 
+                                type="number" 
+                                name="amount" 
+                                id="amount" 
+                                class="form-input"
+                                placeholder="5000"
                             />
                         </div>
 
                         <input type="hidden" name="_csrf" value="${csrfToken}" />
 
                         <button type="submit" class="btn">
-                            Update Email
+                            Transfer Funds
                         </button>
                     </form>
                 </div>
@@ -212,18 +221,15 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
 
 // --- Routes ---
 
-// 1. Homepage (generates and sends the secure page)
 app.get('/', (req, res) => {
     if (req.session.user) {
         // --- TOKEN GENERATION ---
         const csrfToken = crypto.randomBytes(32).toString('hex');
         req.session.csrfToken = csrfToken; // Store token in session
         
-        // Pass the token to the page-building function
         res.send(getBankPage(req.session.user, userAccount, csrfToken));
 
     } else {
-        // Simple login page
         res.send(`
             <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
                 <h1>Welcome to FictionalBank</h1>
@@ -233,29 +239,27 @@ app.get('/', (req, res) => {
     }
 });
 
-// 2. Login (simulated)
 app.get('/login', (req, res) => {
     req.session.user = userAccount.username;
     console.log(`[+] User '${req.session.user}' logged in.`);
+    // On login, reset balance for the demo
+    userAccount.balance = 150230.75;
     res.redirect('/');
 });
 
-// 3. Logout
 app.get('/logout', (req, res) => {
-    // Reset email on logout for the demo
-    userAccount.email = 'user@example.com'; 
     req.session.destroy();
     res.redirect('/');
 });
 
 // 4. THE SECURE ENDPOINT (with token validation)
-app.post('/update-email', (req, res) => {
+app.post('/transfer', (req, res) => {
     if (!req.session.user) {
         return res.status(403).send('Not logged in.');
     }
 
     // --- TOKEN VALIDATION ---
-    const { email, _csrf } = req.body;
+    const { toAccount, amount, _csrf } = req.body;
     const sessionToken = req.session.csrfToken;
 
     req.session.csrfToken = null; // Invalidate token after use
@@ -271,8 +275,10 @@ app.post('/update-email', (req, res) => {
     }
     // --- END VALIDATION ---
 
-    userAccount.email = email;
-    console.log(`[+] SECURE ACTION: Email updated to ${email}`);
+    const transferAmount = parseFloat(amount || 0);
+    userAccount.balance -= transferAmount;
+    
+    console.log(`[+] SECURE ACTION: Transferred ${transferAmount} to ${toAccount}`);
     res.redirect('/');
 });
 
