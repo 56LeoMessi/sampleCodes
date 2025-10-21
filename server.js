@@ -1,8 +1,8 @@
-// --- server.js (SECURE + Internal CSS Version) ---
+// --- server.js (VULNERABLE + Internal CSS Version) ---
 
 const express = require('express');
 const session = require('express-session');
-const crypto = require('crypto'); // We need this for the token
+// We DO NOT need 'crypto' here, as there is no token
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
@@ -21,8 +21,8 @@ let userAccount = {
     email: 'user@example.com'
 };
 
-// --- Helper Function to build the SECURE page ---
-function getBankPage(username, account, csrfToken) { // Added csrfToken
+// --- Helper Function to build the VULNERABLE page ---
+function getBankPage(username, account) {
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -76,7 +76,6 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 grid-template-columns: 2fr 1fr;
                 gap: 24px;
             }
-            /* Responsive grid */
             @media (max-width: 768px) {
                 .grid-container {
                     grid-template-columns: 1fr;
@@ -144,14 +143,14 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 font-size: 1rem;
                 font-weight: 600;
                 color: #ffffff;
-                background-color: #1976d2; /* Main blue */
+                background-color: #d32f2f; /* Red for transfers */
                 border: none;
                 border-radius: 6px;
                 cursor: pointer;
                 transition: background-color 0.2s ease;
             }
             .btn:hover {
-                background-color: #1565c0; /* Darker blue */
+                background-color: #c62828; /* Darker red */
             }
         </style>
     </head>
@@ -183,23 +182,31 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
                 </div>
 
                 <div class="card">
-                    <h2>Update Profile</h2>
-                    <form action="/update-email" method="POST">
+                    <h2>Make a Transfer</h2>
+                    <form action="/transfer" method="POST">
                         <div class="form-group">
-                            <label for="email" class="form-label">New Email Address</label>
+                            <label for="toAccount" class="form-label">To Account Number</label>
                             <input 
-                                type="email" 
-                                name="email" 
-                                id="email" 
+                                type="text" 
+                                name="toAccount" 
+                                id="toAccount" 
                                 class="form-input"
-                                placeholder="new.email@example.com"
+                                placeholder="PKXX XXXX XXXX XXXX"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="amount" class="form-label">Amount (PKR)</label>
+                            <input 
+                                type="number" 
+                                name="amount" 
+                                id="amount" 
+                                class="form-input"
+                                placeholder="5000"
                             />
                         </div>
 
-                        <input type="hidden" name="_csrf" value="${csrfToken}" />
-
                         <button type="submit" class="btn">
-                            Update Email
+                            Transfer Funds
                         </button>
                     </form>
                 </div>
@@ -212,18 +219,11 @@ function getBankPage(username, account, csrfToken) { // Added csrfToken
 
 // --- Routes ---
 
-// 1. Homepage (generates and sends the secure page)
 app.get('/', (req, res) => {
     if (req.session.user) {
-        // --- TOKEN GENERATION ---
-        const csrfToken = crypto.randomBytes(32).toString('hex');
-        req.session.csrfToken = csrfToken; // Store token in session
-        
-        // Pass the token to the page-building function
-        res.send(getBankPage(req.session.user, userAccount, csrfToken));
-
+        // No token generation
+        res.send(getBankPage(req.session.user, userAccount));
     } else {
-        // Simple login page
         res.send(`
             <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
                 <h1>Welcome to FictionalBank</h1>
@@ -233,49 +233,36 @@ app.get('/', (req, res) => {
     }
 });
 
-// 2. Login (simulated)
 app.get('/login', (req, res) => {
     req.session.user = userAccount.username;
     console.log(`[+] User '${req.session.user}' logged in.`);
+    // On login, reset balance for the demo
+    userAccount.balance = 150230.75; 
     res.redirect('/');
 });
 
-// 3. Logout
 app.get('/logout', (req, res) => {
-    // Reset email on logout for the demo
-    userAccount.email = 'user@example.com'; 
     req.session.destroy();
     res.redirect('/');
 });
 
-// 4. THE SECURE ENDPOINT (with token validation)
-app.post('/update-email', (req, res) => {
+// 4. THE VULNERABLE ENDPOINT
+app.post('/transfer', (req, res) => {
     if (!req.session.user) {
         return res.status(403).send('Not logged in.');
     }
 
-    // --- TOKEN VALIDATION ---
-    const { email, _csrf } = req.body;
-    const sessionToken = req.session.csrfToken;
+    // --- NO TOKEN VALIDATION ---
+    // The server blindly trusts any request with a valid session cookie.
 
-    req.session.csrfToken = null; // Invalidate token after use
+    const { toAccount, amount } = req.body;
+    const transferAmount = parseFloat(amount || 0);
+    userAccount.balance -= transferAmount;
 
-    if (!sessionToken || !_csrf || sessionToken !== _csrf) {
-        console.log(`[!!!] CSRF ATTACK BLOCKED: Invalid or missing token.`);
-        return res.status(403).send(
-            '<body style="font-family: sans-serif; text-align: center; padding-top: 50px;">' +
-            '<h1 style="color: red;">403 Forbidden</h1>' +
-            '<p>Invalid CSRF Token. Action blocked.</p>' +
-            '<a href="/">Go Back</a>'
-        );
-    }
-    // --- END VALIDATION ---
-
-    userAccount.email = email;
-    console.log(`[+] SECURE ACTION: Email updated to ${email}`);
+    console.log(`[!!!] VULNERABLE ACTION: Transferred ${transferAmount} to ${toAccount}`);
     res.redirect('/');
 });
 
 app.listen(3000, () => {
-    console.log('SECURE (Internal CSS) server running on http://localhost:3000');
+    console.log('VULNERABLE (Internal CSS) server running on http://localhost:3000');
 });
