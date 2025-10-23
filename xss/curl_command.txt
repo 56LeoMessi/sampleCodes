@@ -1,0 +1,3 @@
+curl 'http://127.0.0.1:3000/buy' \
+  -H 'Cookie: language=en; welcomebanner_status=dismiss; _csrf=ukx22U8f1yTWSwMikXwfzQwk; connect.sid=s:HBHNSEp_WZCFIuQPV_tWchROURVQURMA.LVjx7xoA0IwseCp5fT+mBXAdDI0o3c7Wg/p4EWus33A' \
+  --data-raw '_csrf=snJuT9lw-FIBMqZk0jjuth648fV28paHzVjQ&item=Laptop&price=10000'
