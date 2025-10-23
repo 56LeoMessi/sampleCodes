@@ -1,0 +1,9 @@
+<script>
+  // Find the price element by its new class name
+  let priceElement = document.getElementsByClassName('price-display')[0];
+  // Change the text
+  priceElement.innerText = '$100 (Flash Sale!)';
+  // Make it red and bold
+  priceElement.style.color = '#dc3545';
+  priceElement.style.fontWeight = '800';
+</script>
